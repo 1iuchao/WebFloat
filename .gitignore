@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 运行时产物
+ds_popup.log
+run_stdout.log
+webview_profile/
+webview_profile_*/
+_diag_profile/
+_urltest_profile/
+_p_test/
+_edge_tmp*/
+_debug_temp/
+
+# 个人配置（首次运行自动生成）
+ds_popup_config.json
+
+# 本地定制文件
+启动DeepSeek浮窗.vbs
+ds_popup_v1_备份.py
+*.bak2
+
+# 开发笔记（含本机路径）
+.workbuddy/
