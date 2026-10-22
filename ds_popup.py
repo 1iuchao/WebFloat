@@ -106,6 +106,9 @@ DEFAULT_CONFIG = {
     "webview_args": "--no-sandbox",
     # 开机自动启动（在启动文件夹放快捷方式）
     "autostart": False,
+    # 收起后闲置多少分钟自动退出（0 = 不退出）。
+    # 退出后内存归零，再按启动键会重新拉起（约 3-5 秒）。
+    "idle_exit_minutes": 0,
 }
 
 THEMES = {
@@ -556,6 +559,7 @@ class App:
         self.tray = None
         self.visible = True
         self.exited = False
+        self._hidden_since = None
         self.ready = threading.Event()
         self._keep = []               # 保持委托引用，防止被 GC
         self._nav_fails = 0
@@ -896,6 +900,19 @@ class App:
     def on_tick(self, s, a):
         if self.form is None:
             return
+
+        # 收起太久就自动退出，把内存彻底还给系统（下次按启动键重新拉起）
+        try:
+            mins = float(self.cfg.get("idle_exit_minutes") or 0)
+        except (TypeError, ValueError):
+            mins = 0
+        if (mins > 0 and not self.visible and self._hidden_since
+                and time.time() - self._hidden_since > mins * 60):
+            log("已收起 %g 分钟，自动退出以释放内存" % mins)
+            self._hidden_since = None
+            self.quit()
+            return
+
         geom = (int(self.form.Width), int(self.form.Height),
                 int(self.form.Location.X), int(self.form.Location.Y))
         if self._last_geom is None:
@@ -1049,6 +1066,7 @@ class App:
             self.form.Activate()
             self.form.TopMost = bool(self.cfg.get("always_on_top", True))
             self.visible = True
+            self._hidden_since = None
         self.ui(_do)
         self.focus_input(delay=0.25)
 
@@ -1056,6 +1074,7 @@ class App:
         def _do():
             self.form.Hide()
             self.visible = False
+            self._hidden_since = time.time()
         self.ui(_do)
 
     def toggle(self):
@@ -1075,6 +1094,7 @@ class App:
                 self.form.Activate()
                 self.form.BringToFront()
                 self.visible = True
+                self._hidden_since = None
             except Exception as e:
                 log("唤起窗口失败: %s" % e)
         self.ui(_do)

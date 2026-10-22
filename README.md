@@ -110,6 +110,26 @@ python -m venv .venv
 **登录态丢了？**
 `persistent_profile` 必须为 `true`，且不要删除程序目录下的 `webview_profile` 文件夹。
 
+## 省内存
+
+实测空闲时私有内存约 280 MB：Python 宿主约 78 MB，WebView2 内核约 220 MB（相当于一个浏览器标签页）。
+
+能压的只有内核侧：
+
+| 手段 | 可省 | 代价 |
+|---|---|---|
+| `--disable-gpu` 等内核参数 | 约 40–80 MB | 滚动、动画明显掉帧，部分 CSS 效果变差 |
+| 换 Electron / Tauri / CEF | **不会更少** | Tauri 在 Windows 上仍是 WebView2；Electron、CEF 是自带 Chromium，更重 |
+| 换成原生 API 客户端 | 约 220–250 MB | 等于换个产品：只剩对话框，丢掉网页版的联网搜索、文件上传、历史会话等功能 |
+
+更实用的是「收起后自动退出」——平时体验不变，长期不用时把内存彻底还回去。在配置里设：
+
+```jsonc
+"idle_exit_minutes": 30    // 收起超过 30 分钟就退出；0 = 不启用（默认）
+```
+
+退出后再按 `Ctrl+Alt+D` 会重新拉起，约 3–5 秒。
+
 ## 实现要点
 
 不依赖 Electron —— 程序只有 1 个 Python 文件（约 1000 行），通过 `pythonnet` 直接宿主 WinForms + 系统 WebView2：
